@@ -1,4 +1,5 @@
 const path = require('path')
+const webpack = require('webpack')
 const {CleanWebpackPlugin} = require('clean-webpack-plugin')
 const HTMLWebpackPlugin = require('html-webpack-plugin')
 const CopyPlugin = require('copy-webpack-plugin')
@@ -10,17 +11,12 @@ const isDev = !isProd
 const filename = ext => isDev ? `bundle.${ext}` : `bundle.[hash].${ext}`
 
 const jsLoaders = () => {
-    const loaders = [
-        {
-            loader: 'babel-loader',
-            options: {
-                presets: ['@babel/preset-env']
-            }
-        },
-    ]
+    const loaders = ['babel-loader']
+
     if (isDev) {
         loaders.push('eslint-loader')
     }
+
     return loaders
 }
 
@@ -41,15 +37,13 @@ module.exports = {
     },
     devtool: isDev ? 'source-map' : false,
     devServer: {
-        contentBase: path.join(__dirname, 'dist'),
-        compress: true,
-        port: 9000,
+        port: 3000,
+        hot: isDev
     },
     plugins: [
         new CleanWebpackPlugin(),
         new HTMLWebpackPlugin({
             template: 'index.html',
-
             minify: {
                 removeComments: isProd,
                 collapseWhitespace: isProd
@@ -60,11 +54,14 @@ module.exports = {
                 {
                     from: path.resolve(__dirname, 'src/favicon.ico'),
                     to: path.resolve(__dirname, 'dist')
-                }]
-
+                },
+            ],
         }),
         new MiniCssExtractPlugin({
             filename: filename('css')
+        }),
+        new webpack.DefinePlugin({
+            'process.env.NODE_ENV': JSON.stringify(process.env.NODE_ENV)
         })
     ],
     module: {
@@ -75,6 +72,8 @@ module.exports = {
                     {
                         loader: MiniCssExtractPlugin.loader,
                         options: {
+                            hmr: isDev,
+                            reloadAll: true
                         }
                     },
                     'css-loader',
@@ -82,10 +81,12 @@ module.exports = {
                 ],
             },
             {
-                test: /\.m?js$/,
-                exclude: /(node_modules|bower_components)/,
+                test: /\.js$/,
+                exclude: /node_modules/,
                 use: jsLoaders()
             }
         ]
     }
 }
+
+
